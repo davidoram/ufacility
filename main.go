@@ -1,10 +1,10 @@
 package main
 
 import (
-	"database/sql"
 	"flag"
 	"fmt"
 	"github.com/davidoram/ufacility/database"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"io"
 	"log"
@@ -38,11 +38,18 @@ func main() {
 
 	log.Printf("Connecting to database: %v, host: %v, user: %v ...", *dbName, *dbHost, *dbUser)
 	connectionString := fmt.Sprintf("postgres://%v:%v@%v/%v?sslmode=disable", *dbUser, *dbPassword, *dbHost, *dbName)
-	db, err := sql.Open("postgres", connectionString)
-	if err != nil {
-		log.Fatal(err)
+	db := sqlx.MustConnect("postgres", connectionString)
+
+	migrations := []database.Migration{
+		database.Migration{
+			`create table rewards(
+				id int
+			)
+			`,
+		},
 	}
-	database.MigrateDatabase(db)
+	database.MigrateDatabase(db, &migrations)
+
 	// // Incoming requests to your API go under /api/{version}
 	// http.HandleFunc("/api/v1/rewards", version1.RewardsHandler)
 	// // Requests for outgoing events go under /atom
