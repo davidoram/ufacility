@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/codegangsta/negroni"
 	"github.com/davidoram/ufacility/database"
+	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"io"
@@ -12,25 +14,24 @@ import (
 	"os"
 )
 
-func PingHandler(w http.ResponseWriter, r *http.Request) {
+/*
+ * Http request handler methods
+ */
+func pingHandler(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "pong\n")
+}
+func panicHandler(w http.ResponseWriter, r *http.Request) {
+	panic(nil)
 }
 
 func main() {
 
 	var (
-		dbHost = flag.String("host",
-			"localhost",
-			"Postgress db host")
-		dbName = flag.String("db",
-			"rewards_development",
-			"Postgress db name")
-		dbUser = flag.String("user",
-			os.Getenv("USER"),
-			"Postgress db user")
-		dbPassword = flag.String("password",
-			"",
-			"Postgress db password")
+		dbHost     = flag.String("host", "localhost", "Postgress db host")
+		dbName     = flag.String("db", "rewards_development", "Postgress db name")
+		dbUser     = flag.String("user", os.Getenv("USER"), "Postgress db user")
+		dbPassword = flag.String("password", "", "Postgress db password")
+		httpPort   = flag.Int("port", 8080, "HTTP port to listen on")
 	)
 	flag.Parse()
 
@@ -40,26 +41,33 @@ func main() {
 	connectionString := fmt.Sprintf("postgres://%v:%v@%v/%v?sslmode=disable", *dbUser, *dbPassword, *dbHost, *dbName)
 	db := sqlx.MustConnect("postgres", connectionString)
 
+	/*
+	 * Put your database migrations here, will be processed in order
+	 */
 	migrations := []database.Migration{
 		database.Migration{
-			`create table rewards(
-				id int
+			`CREATE TABLE rewards(
+				id 						integer,
+				permalink 		varchar(255) not null,
+				name					varchar(255) not null,
+
+				PRIMARY KEY(id)
 			)
 			`,
 		},
 	}
 	database.MigrateDatabase(db, &migrations)
 
-	// // Incoming requests to your API go under /api/{version}
-	// http.HandleFunc("/api/v1/rewards", version1.RewardsHandler)
-	// // Requests for outgoing events go under /atom
-	// //http.HandleFunc("/atom/v1/rewards", AtomV1Handler)
-	// // Requests for monitoring the service itself go under /monitor
-	// http.HandleFunc("/ping", PingHandler)
-	// //http.HandleFunc("/performance", PerformanceHandler)
+	/*
+	 * Setup the web server routes
+	 */
+	router := mux.NewRouter()
+	router.HandleFunc("/ping", pingHandler)
+	router.HandleFunc("/panic", panicHandler)
 
-	// err := http.ListenAndServe(":12345", nil)
-	// if err != nil {
-	//   log.Fatal("ListenAndServe: ", err)
-	// }
+	n := negroni.Classic()
+	// router goes last
+	n.UseHandler(router)
+
+	n.Run(fmt.Sprintf(":%d", *httpPort))
 }

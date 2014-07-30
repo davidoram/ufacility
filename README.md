@@ -14,4 +14,4 @@ Setup:
 
 To execute
 
-`$ go run github.com/davidoram/ufacility/uf/main.go`
+`$ go run github.com/davidoram/ufacility/main.go`
