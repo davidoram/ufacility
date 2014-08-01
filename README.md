@@ -7,11 +7,15 @@ Microservice experiment. Providing the ability to Service incoming requests via 
 Instructions
 ============
 
-Setup:
+###Setup:
 
-`$ sudo -u postgres psql postgres
-# create database rewards_development;`
+`sudo -u postgres psql postgres
+create database rewards_development;`
 
-To execute
+###To execute
 
-`$ go run github.com/davidoram/ufacility/main.go`
+`go run github.com/davidoram/ufacility/main.go`
+
+###Generate Swagger API documentation
+
+`
